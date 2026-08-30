@@ -575,7 +575,7 @@
   window.addEventListener('resize', resize);
   window.__dodgeResize = resize;
 
-  let player, blocks, stars, orbs, clocks, drones, coins, particles, keys, running, score, spawnTimer, starTimer, orbTimer, clockTimer, droneTimer, coinTimer, speed, raf, mode, modeKey, frame, playerVX;
+  let player, blocks, stars, orbs, clocks, drones, coins, particles, keys = {}, running, score, spawnTimer, starTimer, orbTimer, clockTimer, droneTimer, coinTimer, speed, raf, mode, modeKey, frame, playerVX;
   let activeEvent, eventUntil, mirrorFlipActive, freezeActive, speedBurstMul, shrinkMul, magnetActive, narrowActive, wallGap;
   let shielded, combo, comboTimer, invulnUntil, shakeMag, slowmoUntil, slowmoMul;
   let boss, bossSpawned, milestoneNext, droneLevel, droneCooldown, nearMissFlash;
@@ -1289,10 +1289,14 @@
   }
 
   window.addEventListener('keydown', (e) => {
+    if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
     if(['ArrowLeft','ArrowRight','a','d'].includes(e.key)) e.preventDefault();
     keys[e.key] = true;
   });
-  window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+  window.addEventListener('keyup', (e) => {
+    if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
+    keys[e.key] = false;
+  });
 
   let dragging = false;
   wrap.addEventListener('pointerdown', (e) => {
