@@ -1300,6 +1300,7 @@
 
   let dragging = false;
   wrap.addEventListener('pointerdown', (e) => {
+    if(e.target.closest('#overlay')) return;
     dragging = true;
     wrap.setPointerCapture && wrap.setPointerCapture(e.pointerId);
   });
