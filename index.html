@@ -1295,15 +1295,18 @@
   window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
   let dragging = false;
-  wrap.addEventListener('pointerdown', () => { dragging = true; });
+  wrap.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    wrap.setPointerCapture && wrap.setPointerCapture(e.pointerId);
+  });
   wrap.addEventListener('pointerup', () => { dragging = false; });
+  wrap.addEventListener('pointercancel', () => { dragging = false; });
   wrap.addEventListener('pointermove', (e) => {
     if(!dragging || !running || freezeActive) return;
     const rect = wrap.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const targetX = Math.max(0, Math.min(W - player.w, x - player.w/2));
-    const shouldMirror = (mode && mode.mirrorControls) !== mirrorFlipActive;
-    player.x = shouldMirror ? (W - player.w - targetX) : targetX;
+    player.x = targetX;
   });
 })();
 </script>
