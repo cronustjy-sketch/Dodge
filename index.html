@@ -581,6 +581,7 @@
   let boss, bossSpawned, milestoneNext, droneLevel, droneCooldown, nearMissFlash;
   let laser, laserTimer, gravityFlip, gravityTimer, coinStreak;
   let survivalSeconds;
+  let playerName = localStorage.getItem('dodge_player_name') || '';
 
   function xpNeeded(lvl){ return 100 + (lvl-1)*40; }
   function addXP(amt){
@@ -1216,12 +1217,44 @@
     overlay.appendChild(container);
   }
 
+  function showNameScreen(){
+    overlay.style.display = 'flex';
+    overlay.innerHTML = '';
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:18px; font-weight:700; color:#F4F6F8;';
+    title.textContent = 'Welcome to Dodge';
+    overlay.appendChild(title);
+    const sub = document.createElement('div');
+    sub.style.cssText = 'font-size:13px; color:#8B93A3; text-align:center; max-width:280px;';
+    sub.textContent = 'What should we call you? This is saved on this device only — no account, no server.';
+    overlay.appendChild(sub);
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = 18;
+    input.placeholder = 'Your name';
+    input.style.cssText = 'width:100%; max-width:260px; padding:10px 12px; border-radius:8px; border:1px solid #232938; background:#171C27; color:#F4F6F8; font-size:14px; font-family:inherit; text-align:center;';
+    overlay.appendChild(input);
+    const btn = document.createElement('button');
+    btn.textContent = "Let's go";
+    btn.style.cssText = btnBase + 'background:#378ADD; border-color:#378ADD; color:#fff; width:100%; max-width:260px;';
+    const commit = () => {
+      const val = input.value.trim();
+      playerName = val || 'Player';
+      localStorage.setItem('dodge_player_name', playerName);
+      showOverlay(false, false);
+    };
+    btn.onclick = commit;
+    input.addEventListener('keydown', (e) => { if(e.key === 'Enter') commit(); });
+    overlay.appendChild(btn);
+    setTimeout(() => input.focus(), 50);
+  }
+
   function showOverlay(isGameOver, isWin){
     overlay.style.display = 'flex';
     overlay.innerHTML = '';
     const title = document.createElement('div');
     title.style.cssText = 'font-size:18px; font-weight:700; color:' + (isWin?'#1D9E75':'#F4F6F8') + ';';
-    title.textContent = isWin ? 'Cleared!' : (isGameOver ? 'Game over' : 'Dodge');
+    title.textContent = isWin ? 'Cleared!' : (isGameOver ? 'Game over' : ('Dodge' + (playerName ? ' — hey, ' + playerName : '')));
     overlay.appendChild(title);
     const sub = document.createElement('div');
     sub.style.cssText = 'font-size:13px; color:#8B93A3; text-align:center; max-width:280px;';
@@ -1249,7 +1282,11 @@
 
   function start(mk){ overlay.style.display='none'; reset(mk); raf = requestAnimationFrame(loop); }
 
-  showOverlay(false, false);
+  if(playerName){
+    showOverlay(false, false);
+  } else {
+    showNameScreen();
+  }
 
   window.addEventListener('keydown', (e) => {
     if(['ArrowLeft','ArrowRight','a','d'].includes(e.key)) e.preventDefault();
