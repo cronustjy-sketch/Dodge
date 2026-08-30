@@ -536,12 +536,14 @@
     inferno: { label: 'Inferno', speed: 5.0, spawnBase: 16, spawnFloor: 6,  speedGrow: 0.006,  doubleAt: 0,   homing: true,  playerW: 22, chaos: 0.0038, goal: 1150, penaltyMode: true, penaltyAmt: 15, hasBoss: true, hasLaser: true },
     abyss:   { label: 'Abyss',   speed: 4.3, spawnBase: 18, spawnFloor: 7,  speedGrow: 0.0038, doubleAt: 2,   homing: true,  playerW: 22, chaos: 0.011, goal: 1300, penaltyMode: true, penaltyAmt: 15, hasBoss: true, hasLaser: true },
     training:{ label: 'Training',speed: 3.2, spawnBase: 30, spawnFloor: 14, speedGrow: 0.0015, doubleAt: 999, homing: false, playerW: 30, chaos: 0, goal: 999999, isTraining: true },
-    void:    { label: '???',     speed: 5.4, spawnBase: 14, spawnFloor: 5,  speedGrow: 0.0075, doubleAt: -1,  homing: true,  playerW: 18, chaos: 0.014, goal: 3000, secret: true, penaltyMode: true, penaltyAmt: 15, hasBoss: true, hasLaser: true }
+    void:    { label: '???',     speed: 5.4, spawnBase: 14, spawnFloor: 5,  speedGrow: 0.0075, doubleAt: -1,  homing: true,  playerW: 18, chaos: 0.014, goal: 3000, secret: true, penaltyMode: true, penaltyAmt: 15, hasBoss: true, hasLaser: true },
+    oblivion:{ label: 'OBLIVION',speed: 15,   spawnBase: 2,  spawnFloor: 1,  speedGrow: 0.03,   doubleAt: -1,  homing: true,  playerW: 9,  chaos: 0.09, goal: 200000, secret: true, penaltyMode: true, penaltyAmt: 100, hasBoss: true, dualBoss: true, hasLaser: true, many: true, requiresWarning: true, oblivionExtra: true, fusionMode: true, sizeMul: 2.6, homingMul: 3, jumpScare: true, fallSpeedMul: 1.6 }
   };
 
   const bests = {};
   Object.keys(MODES).forEach(k => bests[k] = 0);
   let voidUnlocked = false;
+  let oblivionUnlocked = false;
   let playerLevel = 1, playerXP = 0, xpToNext = 100;
   let totalRuns = 0, totalScore = 0, bestCombo = 0, modesWon = new Set();
   const ACHIEVEMENTS = [
@@ -550,6 +552,7 @@
     { id:'clearany', label:'Cleared it', desc:'Win any mode', check: () => modesWon.size >= 1 },
     { id:'clear3', label:'Triple threat', desc:'Win 3 different modes', check: () => modesWon.size >= 3 },
     { id:'void', label:'Into the void', desc:'Unlock the secret mode', check: () => voidUnlocked },
+    { id:'oblivion', label:'Beyond reason', desc:'Unlock Oblivion', check: () => oblivionUnlocked },
     { id:'score500', label:'Half grand', desc:'Score 500+ in one run', check: () => totalScore >= 500 },
     { id:'lvl5', label:'Leveling up', desc:'Reach player level 5', check: () => playerLevel >= 5 }
   ];
@@ -578,9 +581,21 @@
   let player, blocks, stars, orbs, clocks, drones, coins, particles, keys = {}, running, score, spawnTimer, starTimer, orbTimer, clockTimer, droneTimer, coinTimer, speed, raf, mode, modeKey, frame, playerVX;
   let activeEvent, eventUntil, mirrorFlipActive, freezeActive, speedBurstMul, shrinkMul, magnetActive, narrowActive, wallGap;
   let shielded, combo, comboTimer, invulnUntil, shakeMag, slowmoUntil, slowmoMul;
-  let boss, bossSpawned, milestoneNext, droneLevel, droneCooldown, nearMissFlash;
+  let bosses = [];
+  let bossTimer;
+  const OBLIVION_TAUNTS = [
+    'still here?', 'this is normal, keep going', 'you have so far to go',
+    'imagine quitting now', 'the target hasn\'t moved', 'worth it?',
+    'this is only the beginning', 'no checkpoints, by the way', 'you chose this',
+    'almost 1% there', 'stat check: nowhere close', 'this message means nothing'
+  ];
+  let tauntTimer = 0;
+  let fusionTimer = 0;
+  let fusedDisco = false, fusedGravity = false, fusedMirror = false, fusedDrift = false, fusedDark = false, fusedNarrow = false;
+  let fakeLagUntil = 0;
   let laser, laserTimer, gravityFlip, gravityTimer, coinStreak;
   let survivalSeconds;
+  let hitCount = 0;
   let playerName = localStorage.getItem('dodge_player_name') || '';
 
   function xpNeeded(lvl){ return 100 + (lvl-1)*40; }
@@ -631,12 +646,15 @@
     wallGap = null;
     shielded = false; combo = 1; comboTimer = 0; invulnUntil = 0;
     shakeMag = 0; slowmoUntil = 0; slowmoMul = 1;
-    boss = null; bossSpawned = false; milestoneNext = 200;
+    bosses = []; bossTimer = mode.hasBoss ? Math.floor(mode.goal * 0.4) : Infinity; milestoneNext = 200;
+    tauntTimer = 0; fakeLagUntil = 0;
+    fusionTimer = 0; fusedDisco = false; fusedGravity = false; fusedMirror = false; fusedDrift = false; fusedDark = false; fusedNarrow = false;
     droneLevel = 0; droneCooldown = 0; nearMissFlash = 0;
     laser = null; laserTimer = 260;
     gravityFlip = false; gravityTimer = 320;
     coinStreak = 0;
     survivalSeconds = 0;
+    hitCount = 0;
     goalTextEl.textContent = mode.isTraining ? '(training)' : (mode.isEndless ? '(survive)' : ('/ ' + mode.goal));
     scoreEl.textContent = '0';
     bestEl.textContent = bests[m];
@@ -645,19 +663,24 @@
   }
 
   function colorFor(i){
-    if(mode.discoMode) return DISCO_COLORS[Math.floor(Math.random()*DISCO_COLORS.length)];
+    if(mode.discoMode || (mode.fusionMode && fusedDisco)) return DISCO_COLORS[Math.floor(Math.random()*DISCO_COLORS.length)];
     const ramps = (mode.homing || mode === MODES.chaos || mode === MODES.abyss || mode === MODES.void) ? ['#E24B4A','#A32D2D','#D85A30','#791F1F'] : ['#7F77DD','#1D9E75','#D85A30','#D4537E'];
     return ramps[i % ramps.length];
+  }
+
+  function isGravityActive(){
+    return mode.gravityMode || (mode.fusionMode && fusedGravity);
   }
 
   function spawnBlock(){
     const mul = (mode.sizeMul || 1) * shrinkMul;
     const isGold = Math.random() < 0.03;
     const size = isGold ? 26 : (18 + Math.random()*20) * mul;
-    const fromTop = !(mode.gravityMode && gravityFlip);
+    const fromTop = !(isGravityActive() && gravityFlip);
+    const speedMul = mode.fallSpeedMul || 1;
     const b = {
       x: Math.random() * (W - size), y: fromTop ? -size : H+size, w: size, h: size,
-      vy: (fromTop ? 1 : -1) * (speed + Math.random()*2.5), vx: 0,
+      vy: (fromTop ? 1 : -1) * (speed + Math.random()*2.5) * speedMul, vx: 0,
       color: isGold ? '#EF9F27' : colorFor(Math.floor(Math.random()*4)),
       spin: (Math.random()-0.5)*0.06,
       gold: isGold
@@ -707,7 +730,8 @@
   }
 
   function maybeTriggerEvent(){
-    if(activeEvent || boss) return;
+    if(activeEvent) return;
+    if(bosses.length > 0 && !mode.dualBoss) return;
     const pool = eventPool();
     if(pool.length === 0) return;
     const chaosRate = mode.isTraining ? 0.006 : mode.chaos;
@@ -739,12 +763,15 @@
   }
 
   function maybeSpawnBoss(){
-    if(!mode.hasBoss || bossSpawned || mode.isTraining) return;
-    if(score < mode.goal * 0.4) return;
-    bossSpawned = true;
-    boss = { x: W/2-30, y: -70, w: 60, h: 60, hp: 5, maxHp: 5, dir: 1, phase: 0, startFrame: frame };
-    showBanner('Boss incoming');
-    showCenterFlash('Boss incoming', 'rgba(153,60,29,0.32)');
+    if(!mode.hasBoss || mode.isTraining) return;
+    const wantCount = mode.dualBoss ? 2 : 1;
+    if(bosses.length >= wantCount) return;
+    if(score < bossTimer) return;
+    bosses.push({ x: (bosses.length === 0 ? W*0.3 : W*0.62) - 30, y: -70, w: 60, h: 60, hp: 5, maxHp: 5, dir: bosses.length === 0 ? 1 : -1, phase: 0, startFrame: frame });
+    // Next boss (or respawn) trigger — Oblivion keeps sending them, others just once.
+    bossTimer = score + (mode.dualBoss ? 2200 : Infinity);
+    showBanner(bosses.length > 1 ? 'Second boss incoming' : 'Boss incoming');
+    showCenterFlash(bosses.length > 1 ? 'Second boss incoming' : 'Boss incoming', 'rgba(153,60,29,0.32)');
   }
 
   function registerHit(bx, by, bcolor){
@@ -757,11 +784,13 @@
       combo = 1; comboWrap.style.opacity = '0';
       coinStreak = 0;
       invulnUntil = frame + 55;
+      hitCount++;
       showBanner('Hit! -' + amt);
       burst(bx, by, bcolor, 10);
       shake(6);
       return;
     }
+    hitCount++;
     burst(bx, by, bcolor, 24); shake(10); gameOver();
   }
 
@@ -785,16 +814,50 @@
     clearEventIfDone();
     maybeSpawnBoss();
 
+    if(mode.oblivionExtra){
+      tauntTimer++;
+      if(tauntTimer > 340 + Math.random()*260){
+        tauntTimer = 0;
+        showBanner(OBLIVION_TAUNTS[Math.floor(Math.random()*OBLIVION_TAUNTS.length)]);
+      }
+      // A short, unfair-feeling input freeze — like real lag, not an announced event.
+      if(fakeLagUntil === 0 && Math.random() < 0.0016){
+        fakeLagUntil = frame + 16 + Math.floor(Math.random()*14);
+      }
+    }
+
+    if(mode.fusionMode){
+      fusionTimer--;
+      if(fusionTimer <= 0){
+        fusedDisco = Math.random() < 0.55;
+        fusedGravity = Math.random() < 0.4;
+        fusedMirror = Math.random() < 0.45;
+        fusedDrift = Math.random() < 0.35;
+        fusedDark = Math.random() < 0.4;
+        fusedNarrow = Math.random() < 0.3;
+        fusionTimer = 200 + Math.floor(Math.random()*160);
+        const active = [];
+        if(fusedDisco) active.push('disco');
+        if(fusedGravity) active.push('gravity flips');
+        if(fusedMirror) active.push('mirrored controls');
+        if(fusedDrift) active.push('drift physics');
+        if(fusedDark) active.push('blackout vision');
+        if(fusedNarrow) active.push('narrow field');
+        showBanner(active.length ? 'Now: ' + active.join(' + ') : 'Brief calm (enjoy it)');
+        if(active.length >= 3) showCenterFlash('Everything at once', 'rgba(226,75,74,0.3)');
+      }
+    }
+
     ctx.save();
     let sx=0, sy=0;
     if(shakeMag > 0.3){ sx=(Math.random()-0.5)*shakeMag; sy=(Math.random()-0.5)*shakeMag; shakeMag *= 0.85; } else shakeMag = 0;
     ctx.translate(sx, sy);
     if(activeEvent === 'flip'){ ctx.translate(0, H); ctx.scale(1, -1); }
 
-    ctx.fillStyle = mode.darkVision ? '#2a2a28' : '#12161F';
+    ctx.fillStyle = (mode.darkVision || (mode.fusionMode && fusedDark)) ? '#2a2a28' : '#12161F';
     ctx.fillRect(-20,-20,W+40,H+40);
 
-    if(mode.discoMode){
+    if(mode.discoMode || (mode.fusionMode && fusedDisco)){
       for(let d=0; d<5; d++){
         const ang = frame*0.01 + d*(Math.PI*2/5);
         const cx = W/2 + Math.cos(ang)*W*0.35;
@@ -804,18 +867,20 @@
       }
     }
 
-    if(mode.gravityMode){
+    if(mode.gravityMode || (mode.fusionMode && fusedGravity)){
       gravityTimer--;
       if(gravityTimer <= 0){
         gravityFlip = !gravityFlip;
         gravityTimer = 280 + Math.floor(Math.random()*140);
-        showBanner(gravityFlip ? 'Gravity reversed' : 'Gravity normal');
-        showCenterFlash(gravityFlip ? 'Gravity reversed' : 'Gravity normal', 'rgba(127,119,221,0.3)');
+        if(!mode.fusionMode){
+          showBanner(gravityFlip ? 'Gravity reversed' : 'Gravity normal');
+          showCenterFlash(gravityFlip ? 'Gravity reversed' : 'Gravity normal', 'rgba(127,119,221,0.3)');
+        }
       }
     }
 
-    const marginL = narrowActive ? W*0.22 : 0;
-    const marginR = narrowActive ? W*0.22 : 0;
+    const marginL = (narrowActive || (mode.fusionMode && fusedNarrow)) ? W*0.22 : 0;
+    const marginR = (narrowActive || (mode.fusionMode && fusedNarrow)) ? W*0.22 : 0;
     if(narrowActive){
       ctx.fillStyle = 'rgba(217,90,48,0.12)';
       ctx.fillRect(0,0,marginL,H); ctx.fillRect(W-marginR,0,marginR,H);
@@ -823,11 +888,14 @@
 
     let left = keys['ArrowLeft'] || keys['a'];
     let right = keys['ArrowRight'] || keys['d'];
-    if(mode.mirrorControls) { const t=left; left=right; right=t; }
+    if(mode.mirrorControls || (mode.fusionMode && fusedMirror)) { const t=left; left=right; right=t; }
     if(mirrorFlipActive) { const t=left; left=right; right=t; }
 
-    if(!freezeActive){
-      if(mode.drift){
+    const isFakeLagging = fakeLagUntil > 0 && frame < fakeLagUntil;
+    if(fakeLagUntil > 0 && frame >= fakeLagUntil) fakeLagUntil = 0;
+
+    if(!freezeActive && !isFakeLagging){
+      if(mode.drift || (mode.fusionMode && fusedDrift)){
         if(left) playerVX -= 0.35;
         if(right) playerVX += 0.35;
         playerVX *= 0.98; playerVX = Math.max(-7, Math.min(7, playerVX));
@@ -839,13 +907,27 @@
       }
     }
     player.x = Math.max(marginL, Math.min(W - player.w - marginR, player.x));
+    if(mode.oblivionExtra){
+      // A persistent low-grade jitter — never enough to blame a single hit on, always there.
+      player.x += Math.sin(frame*0.7)*0.6;
+    }
 
     const timeMul = frame < slowmoUntil ? slowmoMul : 1;
-    const playerY = (mode.gravityMode && gravityFlip) ? 10 : H-40;
+    const playerY = (isGravityActive() && gravityFlip) ? 10 : H-40;
+
+    if(mode.jumpScare && Math.random() < 0.0009){
+      const pcxJS = player.x + player.w/2;
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const jsSize = 30;
+      const jsX = Math.max(4, Math.min(W-jsSize-4, pcxJS + side*(player.w*1.4 + 6) - jsSize/2));
+      blocks.push({ x: jsX, y: playerY - jsSize - 2, w: jsSize, h: jsSize, vy: speed*2.4, vx: 0, color: '#fff', spin: 0, jumpscare: true });
+      shake(16);
+      showCenterFlash('!', 'rgba(226,75,74,0.55)');
+    }
 
     spawnTimer++;
     const spawnRate = Math.max(mode.spawnFloor, mode.spawnBase - Math.floor(score/90));
-    if(activeEvent !== 'wallrush' && !boss && spawnTimer > spawnRate){
+    if(activeEvent !== 'wallrush' && (mode.dualBoss || bosses.length === 0) && spawnTimer > spawnRate){
       spawnTimer = 0;
       spawnBlock();
       if(score > mode.doubleAt && Math.random() < 0.4) spawnBlock();
@@ -878,11 +960,11 @@
     if(invulnBlink) pColor = '#ffffff';
     else if(shielded) pColor = '#F2C744';
     else if(freezeActive) pColor = '#EF9F27';
-    else if(mode.darkVision) pColor = '#5DCAA5';
+    else if(mode.darkVision || (mode.fusionMode && fusedDark)) pColor = '#5DCAA5';
     else if(mode.homing) pColor = '#993C1D';
     else if(mode.mirrorControls || mirrorFlipActive) pColor = '#D4537E';
     else if(mode.drift) pColor = '#7F77DD';
-    else if(mode.discoMode) pColor = DISCO_COLORS[Math.floor(frame/12) % DISCO_COLORS.length];
+    else if(mode.discoMode || (mode.fusionMode && fusedDisco)) pColor = DISCO_COLORS[Math.floor(frame/12) % DISCO_COLORS.length];
     else if(mode.gravityMode) pColor = gravityFlip ? '#D4537E' : '#378ADD';
     else pColor = '#378ADD';
 
@@ -992,7 +1074,8 @@
       }
     }
 
-    if(boss){
+    for(let bi = bosses.length-1; bi >= 0; bi--){
+      const boss = bosses[bi];
       boss.phase++;
       const pcxNow0 = player.x + player.w/2;
       // Occasionally dart hard toward the player instead of just pacing.
@@ -1028,7 +1111,7 @@
       }
       // Boss encounter has a shot clock — sticking around to wait it out isn't free.
       if(frame - boss.startFrame > 620){
-        boss = null;
+        bosses.splice(bi, 1);
         showBanner('Boss retreated');
       } else {
         ctx.fillStyle = '#712B13';
@@ -1084,15 +1167,17 @@
       b.y += b.vy * effSpeedMul;
       if(b.homing || magnetActive){
         const bcx=b.x+b.w/2;
-        const pull=(mode===MODES.inferno||mode===MODES.abyss||mode===MODES.void)?0.06:(magnetActive?0.05:0.04);
-        const cap=magnetActive?2.0:((mode===MODES.inferno||mode===MODES.abyss||mode===MODES.void)?2.2:1.6);
+        const homingMul = mode.homingMul || 1;
+        const pull=((mode===MODES.inferno||mode===MODES.abyss||mode===MODES.void||mode===MODES.oblivion)?0.06:(magnetActive?0.05:0.04)) * homingMul;
+        const cap=(magnetActive?2.0:((mode===MODES.inferno||mode===MODES.abyss||mode===MODES.void||mode===MODES.oblivion)?2.2:1.6)) * homingMul;
         b.vx += (bcx<pcx?pull:-pull); b.vx = Math.max(-cap, Math.min(cap, b.vx));
         b.x -= b.vx*timeMul; b.x = Math.max(0, Math.min(W-b.w, b.x));
       }
-      const nearPlayer = mode.darkVision ? (Math.abs((b.y)-playerY)<220) : true;
-      if(!mode.darkVision || nearPlayer){
+      const darkActive = mode.darkVision || (mode.fusionMode && fusedDark);
+      const nearPlayer = darkActive ? (Math.abs((b.y)-playerY)<220) : true;
+      if(!darkActive || nearPlayer){
         ctx.save(); ctx.translate(b.x+b.w/2, b.y+b.h/2); ctx.rotate(frame*b.spin);
-        ctx.fillStyle = mode.discoMode ? DISCO_COLORS[Math.floor((frame+i*7)/10) % DISCO_COLORS.length] : b.color;
+        ctx.fillStyle = b.jumpscare ? '#ffffff' : ((mode.discoMode || (mode.fusionMode && fusedDisco)) ? DISCO_COLORS[Math.floor((frame+i*7)/10) % DISCO_COLORS.length] : b.color);
         ctx.beginPath(); ctx.roundRect(-b.w/2, -b.h/2, b.w, b.h, b.gold?8:4); ctx.fill();
         if(b.gold){ ctx.strokeStyle = '#633806'; ctx.lineWidth = 1.5; ctx.stroke(); }
         ctx.restore();
@@ -1145,6 +1230,12 @@
       ctx.fillText(survivalSeconds + 's', W-52, 20);
     }
 
+    if(mode.oblivionExtra && isFakeLagging){
+      ctx.fillStyle = 'rgba(226,75,74,0.85)';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('reconnecting' + '.'.repeat(1 + Math.floor(frame/6)%3), 10, H-8);
+    }
+
     ctx.restore();
     raf = requestAnimationFrame(loop);
   }
@@ -1161,6 +1252,7 @@
     running = false;
     if(!mode.isTraining && score > bests[modeKey]){ bests[modeKey] = score; bestEl.textContent = score; }
     if(modeKey === 'abyss' && score >= mode.goal && !voidUnlocked){ voidUnlocked = true; }
+    if(modeKey === 'void' && score >= mode.goal && !oblivionUnlocked){ oblivionUnlocked = true; }
     if(!mode.isTraining) finalizeRun(false);
     showOverlay(true, false);
   }
@@ -1168,6 +1260,7 @@
     running = false;
     if(score > bests[modeKey]){ bests[modeKey] = score; bestEl.textContent = score; }
     if(modeKey === 'abyss') voidUnlocked = true;
+    if(modeKey === 'void') oblivionUnlocked = true;
     finalizeRun(true);
     showOverlay(true, true);
   }
@@ -1177,18 +1270,20 @@
     grid.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; max-width:300px;';
     Object.keys(MODES).forEach(key => {
       const m = MODES[key];
-      if(m.secret && !voidUnlocked) return;
+      if(m.secret && key === 'void' && !voidUnlocked) return;
       const btn = document.createElement('button');
-      btn.textContent = m.secret ? ('Void ('+m.goal+')') : (m.label + (m.isTraining || m.isEndless ? '' : ' ('+m.goal+')'));
+      btn.textContent = key === 'void' ? ('Void ('+m.goal+')') : (m.label + (m.isTraining || m.isEndless ? '' : ' ('+m.goal+')'));
       btn.style.cssText = btnBase;
       if(key==='devil'){ btn.style.borderColor='#E24B4A'; btn.style.color='#E24B4A'; }
       if(key==='inferno'||key==='chaos'){ btn.style.borderColor='#E24B4A'; btn.style.color='#fff'; btn.style.background='#E24B4A'; }
       if(key==='abyss'){ btn.style.borderColor='#E24B4A'; btn.style.color='#fff'; btn.style.background='#4A1B0C'; }
       if(key==='void'){ btn.style.gridColumn='span 2'; btn.style.borderColor='#9C4DCC'; btn.style.color='#fff'; btn.style.background='#2B0B40'; }
+      if(key==='oblivion'){ btn.style.gridColumn='span 2'; btn.style.borderColor='#000'; btn.style.color='#E24B4A'; btn.style.background='#000'; btn.style.textShadow='0 0 8px rgba(226,75,74,0.6)'; }
       if(key==='disco'){ btn.style.borderColor='#D4537E'; btn.style.color='#fff'; btn.style.background='linear-gradient(90deg,#7F77DD,#D4537E)'; }
       if(key==='gravity'){ btn.style.borderColor='#7F77DD'; btn.style.color='#fff'; btn.style.background='#534AB7'; }
       if(key==='endless'){ btn.style.borderColor='#5DCAA5'; btn.style.color='#fff'; btn.style.background='#1D9E75'; }
       if(key==='training'){ btn.style.gridColumn='span 2'; btn.onclick=()=>showTrainingPicker(); }
+      else if(m.requiresWarning){ btn.onclick=()=>showOblivionWarning(); }
       else { btn.onclick=()=>start(key); }
       grid.appendChild(btn);
     });
@@ -1206,6 +1301,34 @@
       list.appendChild(row);
     });
     return list;
+  }
+
+  function showOblivionWarning(){
+    overlay.innerHTML = '';
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:19px; font-weight:800; color:#E24B4A; text-shadow:0 0 10px rgba(226,75,74,0.5);';
+    title.textContent = '⚠ OBLIVION';
+    overlay.appendChild(title);
+
+    const warn = document.createElement('div');
+    warn.style.cssText = 'font-size:13px; color:#F4F6F8; text-align:center; max-width:280px; line-height:1.6;';
+    warn.innerHTML = 'This is, on purpose, unplayable.<br><br>' +
+      'Target: <strong>200,000</strong>. Hits cost <strong>100 points</strong>. Two bosses, recurring.<br><br>' +
+      'Blocks are huge, fall fast, and pull toward you hard. Every other mode\'s gimmick fuses in and stacks — gravity flips, mirrored controls, drift, blackout, narrowed field, disco — often several at once.<br><br>' +
+      'Blocks can also appear right next to you with almost no warning. That\'s intentional too.<br><br>' +
+      'There is no shortcut, and this is not designed to be beaten.';
+    overlay.appendChild(warn);
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; gap:8px; width:100%; max-width:280px; margin-top:6px;';
+    const backBtn = document.createElement('button');
+    backBtn.textContent = 'Back'; backBtn.style.cssText = btnBase + 'flex:1;';
+    backBtn.onclick = () => showOverlay(false, false);
+    const goBtn = document.createElement('button');
+    goBtn.textContent = 'I understand — go'; goBtn.style.cssText = btnBase + 'flex:1; background:#4A1B0C; border-color:#E24B4A; color:#E24B4A;';
+    goBtn.onclick = () => start('oblivion');
+    row.appendChild(backBtn); row.appendChild(goBtn);
+    overlay.appendChild(row);
   }
 
   function showTrainingPicker(){
@@ -1279,6 +1402,17 @@
     setTimeout(() => input.focus(), 50);
   }
 
+  function mockLineFor(hits){
+    const oblivion = mode && mode.oblivionExtra;
+    if(hits <= 0) return oblivion ? 'Zero hits. Actually impressive.' : null;
+    if(hits <= 3) return null;
+    if(hits <= 8) return 'A little sloppy there.';
+    if(hits <= 15) return oblivion ? 'That\'s a lot of hits, even for Oblivion.' : 'You got hit... a lot.';
+    if(hits <= 30) return 'Were you even trying to dodge?';
+    if(hits <= 60) return 'At this point the blocks are dodging you.';
+    return 'Genuinely impressive how much of that you failed to avoid.';
+  }
+
   function showOverlay(isGameOver, isWin){
     overlay.style.display = 'flex';
     overlay.innerHTML = '';
@@ -1297,6 +1431,20 @@
       const unlock = document.createElement('div');
       unlock.style.cssText='font-size:12px; color:#9C4DCC; font-weight:700;'; unlock.textContent='Void unlocked';
       overlay.appendChild(unlock);
+    }
+    if(isGameOver && !mode.isTraining){
+      const hitsLine = document.createElement('div');
+      hitsLine.style.cssText = 'font-size:12px; color:#8B93A3; text-align:center; max-width:280px;';
+      hitsLine.textContent = 'Hits taken: ' + hitCount;
+      overlay.appendChild(hitsLine);
+
+      const mock = mockLineFor(hitCount);
+      if(mock){
+        const mockEl = document.createElement('div');
+        mockEl.style.cssText = 'font-size:12.5px; color:#E24B4A; text-align:center; max-width:280px; font-weight:600;';
+        mockEl.textContent = mock;
+        overlay.appendChild(mockEl);
+      }
     }
     const tabRow = document.createElement('div');
     tabRow.style.cssText = 'display:flex; gap:6px;';
