@@ -742,7 +742,7 @@
     if(!mode.hasBoss || bossSpawned || mode.isTraining) return;
     if(score < mode.goal * 0.4) return;
     bossSpawned = true;
-    boss = { x: W/2-30, y: -70, w: 60, h: 60, hp: 5, maxHp: 5, dir: 1, phase: 0 };
+    boss = { x: W/2-30, y: -70, w: 60, h: 60, hp: 5, maxHp: 5, dir: 1, phase: 0, startFrame: frame };
     showBanner('Boss incoming');
     showCenterFlash('Boss incoming', 'rgba(153,60,29,0.32)');
   }
@@ -994,22 +994,52 @@
 
     if(boss){
       boss.phase++;
-      boss.x += boss.dir * 1.6;
-      if(boss.x < 20 || boss.x > W-boss.w-20) boss.dir *= -1;
-      boss.y = Math.min(boss.y + 1.2, 40);
-      if(boss.phase % 55 === 0){
-        for(let k=0;k<3;k++){
-          blocks.push({ x: boss.x+boss.w/2-9+k*9-9, y: boss.y+boss.h, w:16, h:16, vy: speed*0.9, vx:0, color:'#993C1D', spin:0.04 });
+      const pcxNow0 = player.x + player.w/2;
+      // Occasionally dart hard toward the player instead of just pacing.
+      if(boss.phase % 90 === 0){
+        boss.dir = (pcxNow0 < boss.x + boss.w/2) ? -1 : 1;
+        boss.dartUntil = frame + 26;
+      }
+      const darting = boss.dartUntil && frame < boss.dartUntil;
+      const baseSpeed = 5.5 + Math.min(1, (frame - boss.startFrame)/500)*3;
+      boss.x += boss.dir * (darting ? baseSpeed*2.1 : baseSpeed);
+      if(boss.x < 16 || boss.x > W-boss.w-16) boss.dir *= -1;
+      boss.y = Math.min(boss.y + 4, 44);
+
+      const pcxNow = player.x + player.w/2;
+      const fireEvery = Math.max(22, 40 - Math.floor((frame - boss.startFrame)/240)*3);
+      if(boss.phase % fireEvery === 0){
+        const bcx = boss.x + boss.w/2;
+        const pattern = boss.phase % (fireEvery*3) === 0 ? 'spread' : (boss.phase % (fireEvery*2) === 0 ? 'aimed' : 'triple');
+        if(pattern === 'triple'){
+          for(let k=-1;k<=1;k++){
+            blocks.push({ x: bcx-8+k*22, y: boss.y+boss.h, w:16, h:16, vy: speed*1.05, vx:0, color:'#993C1D', spin:0.04 });
+          }
+        } else if(pattern === 'aimed'){
+          const dirToPlayer = pcxNow < bcx ? -1 : 1;
+          for(let k=0;k<2;k++){
+            blocks.push({ x: bcx-8+dirToPlayer*k*20, y: boss.y+boss.h, w:16, h:16, vy: speed*1.15, vx: dirToPlayer*0.6, color:'#E24B4A', spin:0.05, homing:true });
+          }
+        } else {
+          for(let k=-2;k<=2;k++){
+            blocks.push({ x: bcx-8+k*26, y: boss.y+boss.h, w:14, h:14, vy: speed*0.95, vx:0, color:'#993C1D', spin:0.04 });
+          }
         }
       }
-      ctx.fillStyle = '#712B13';
-      ctx.beginPath(); ctx.roundRect(boss.x, boss.y, boss.w, boss.h, 10); ctx.fill();
-      ctx.fillStyle = 'rgba(0,0,0,0.25)';
-      ctx.fillRect(boss.x, boss.y-10, boss.w, 5);
-      ctx.fillStyle = '#E24B4A';
-      ctx.fillRect(boss.x, boss.y-10, boss.w*(boss.hp/boss.maxHp), 5);
-      const hitBoss = !invuln && player.x < boss.x+boss.w && player.x+player.w > boss.x && playerY < boss.y+boss.h && playerY+player.h > boss.y;
-      if(hitBoss){ registerHit(pcx, playerY, '#712B13'); if(!running){ ctx.restore(); return; } }
+      // Boss encounter has a shot clock — sticking around to wait it out isn't free.
+      if(frame - boss.startFrame > 620){
+        boss = null;
+        showBanner('Boss retreated');
+      } else {
+        ctx.fillStyle = '#712B13';
+        ctx.beginPath(); ctx.roundRect(boss.x, boss.y, boss.w, boss.h, 10); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(boss.x, boss.y-10, boss.w, 5);
+        ctx.fillStyle = '#E24B4A';
+        ctx.fillRect(boss.x, boss.y-10, boss.w*(boss.hp/boss.maxHp), 5);
+        const hitBoss = !invuln && player.x < boss.x+boss.w && player.x+player.w > boss.x && playerY < boss.y+boss.h && playerY+player.h > boss.y;
+        if(hitBoss){ registerHit(pcx, playerY, '#712B13'); if(!running){ ctx.restore(); return; } }
+      }
     }
 
     if(laser){
