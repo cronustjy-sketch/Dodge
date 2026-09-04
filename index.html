@@ -779,9 +779,14 @@
     if(mode.penaltyMode){
       if(frame < invulnUntil) return;
       let amt = mode.penaltyAmt || 15;
-      if(mode.oblivionExtra && score >= 100000){
-        // Past 100k the penalty stops being predictable — anywhere from a graze to a gut punch.
-        amt = 1000 + Math.floor(Math.random() * 99000);
+      if(mode.oblivionExtra && score >= 1000){
+        if(score >= 5000){
+          // Deep into a run, hits stop being predictable at all.
+          amt = 1000 + Math.floor(Math.random() * 99000);
+        } else {
+          // Past the first 1000, the flat penalty gives way to a random range.
+          amt = 100 + Math.floor(Math.random() * 400);
+        }
       }
       score = Math.max(0, score - amt);
       scoreEl.textContent = score;
@@ -1317,7 +1322,7 @@
     const warn = document.createElement('div');
     warn.style.cssText = 'font-size:13px; color:#F4F6F8; text-align:center; max-width:280px; line-height:1.6;';
     warn.innerHTML = 'This is, on purpose, unplayable.<br><br>' +
-      'Target: <strong>200,000</strong>. Hits cost <strong>100 points</strong>. Two bosses, recurring.<br><br>' +
+      'Target: <strong>200,000</strong>. Hits cost <strong>100 points</strong> until you pass <strong>1,000</strong>, then a random amount between <strong>100 and 500</strong> — and past <strong>5,000</strong>, a random amount between <strong>1,000 and 100,000</strong>. The deeper into a run you get, the more a single hit can undo.<br><br>' +
       'Blocks are huge, fall fast, and pull toward you hard. Every other mode\'s gimmick fuses in and stacks — gravity flips, mirrored controls, drift, blackout, narrowed field, disco — often several at once.<br><br>' +
       'Blocks can also appear right next to you with almost no warning. That\'s intentional too.<br><br>' +
       'There is no shortcut, and this is not designed to be beaten.';
