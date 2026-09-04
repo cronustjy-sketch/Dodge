@@ -514,7 +514,7 @@
       <div>Lv <span id="lvl">1</span> — <span id="xpBar" style="display:inline-block; width:70px; height:5px; background:#232938; border-radius:3px; overflow:hidden; vertical-align:middle;"><span id="xpFill" style="display:block; height:100%; width:0%; background:#5DCAA5;"></span></span></div>
       <div id="achToast" style="opacity:0; font-weight:600; color:#EF9F27;"></div>
     </div>
-    <div id="wrap" style="position:relative; width:100%; max-width:420px; height:min(520px, 62vh); min-height:380px; margin:0 auto; background:#12161F; border-radius:12px; border:1px solid #232938; overflow:hidden; touch-action:none;">
+    <div id="wrap" style="position:relative; width:100%; max-width:420px; height:min(600px, 72vh); min-height:420px; margin:0 auto; background:#12161F; border-radius:12px; border:1px solid #232938; overflow:hidden; touch-action:none;">
       <canvas id="c" style="position:absolute; inset:0; width:100%; height:100%; display:block;"></canvas>
       <div id="centerFlash" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none;">
         <div id="centerFlashText" style="font-size:22px; font-weight:600; color:#fff; text-shadow:0 1px 6px rgba(0,0,0,0.6); text-align:center; padding:0 1.5rem;"></div>
@@ -523,7 +523,7 @@
       <div id="overlay" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; background:#12161F; padding:1rem; overflow-y:auto;">
         <div style="font-size:18px; font-weight:700; color:#F4F6F8;">Dodge</div>
         <div id="menuSub" style="font-size:13px; color:#8B93A3; text-align:center; max-width:280px;">Easiest to hardest. Reach the target score to win.</div>
-        <div id="modeSelect" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; max-width:300px;"></div>
+        <div id="modeSelect" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; width:100%; max-width:320px;"></div>
       </div>
     </div>
     <div style="text-align:center; margin-top:8px; font-size:12px; color:#8B93A3;">Arrow keys / A-D / drag to move</div>
@@ -1394,23 +1394,23 @@
 
   function buildModeGrid(){
     const grid = document.createElement('div');
-    grid.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; max-width:300px;';
+    grid.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:6px; width:100%; max-width:320px;';
     Object.keys(MODES).forEach(key => {
       const m = MODES[key];
       if(m.secret && key === 'void' && !voidUnlocked) return;
       const btn = document.createElement('button');
       btn.textContent = key === 'void' ? ('Void ('+m.goal+')') : (m.label + (m.isTraining || m.isEndless ? '' : ' ('+m.goal+')'));
-      btn.style.cssText = btnBase;
+      btn.style.cssText = btnBase + 'padding:8px 6px; font-size:11.5px;';
       if(key==='devil'){ btn.style.borderColor='#E24B4A'; btn.style.color='#E24B4A'; }
       if(key==='inferno'||key==='chaos'){ btn.style.borderColor='#E24B4A'; btn.style.color='#fff'; btn.style.background='#E24B4A'; }
       if(key==='abyss'){ btn.style.borderColor='#E24B4A'; btn.style.color='#fff'; btn.style.background='#4A1B0C'; }
-      if(key==='void'){ btn.style.gridColumn='span 2'; btn.style.borderColor='#9C4DCC'; btn.style.color='#fff'; btn.style.background='#2B0B40'; }
+      if(key==='void'){ btn.style.borderColor='#9C4DCC'; btn.style.color='#fff'; btn.style.background='#2B0B40'; }
       if(key==='precision'){ btn.style.borderColor='#F4F6F8'; btn.style.color='#0B0E14'; btn.style.background='#F4F6F8'; }
-      if(key==='oblivion'){ btn.style.gridColumn='span 2'; btn.style.borderColor='#000'; btn.style.color='#E24B4A'; btn.style.background='#000'; btn.style.textShadow='0 0 8px rgba(226,75,74,0.6)'; }
+      if(key==='oblivion'){ btn.style.borderColor='#000'; btn.style.color='#E24B4A'; btn.style.background='#000'; btn.style.textShadow='0 0 8px rgba(226,75,74,0.6)'; }
       if(key==='disco'){ btn.style.borderColor='#D4537E'; btn.style.color='#fff'; btn.style.background='linear-gradient(90deg,#7F77DD,#D4537E)'; }
       if(key==='gravity'){ btn.style.borderColor='#7F77DD'; btn.style.color='#fff'; btn.style.background='#534AB7'; }
       if(key==='endless'){ btn.style.borderColor='#5DCAA5'; btn.style.color='#fff'; btn.style.background='#1D9E75'; }
-      if(key==='training'){ btn.style.gridColumn='span 2'; btn.onclick=()=>showTrainingPicker(); }
+      if(key==='training'){ btn.onclick=()=>showTrainingPicker(); }
       else if(m.requiresWarning){ btn.onclick=()=>showOblivionWarning(); }
       else { btn.onclick=()=>start(key); }
       grid.appendChild(btn);
