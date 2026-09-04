@@ -281,6 +281,7 @@
   <div class="nav-links">
     <a href="#how">How to play</a>
     <a href="#glossary">Pickups &amp; hazards</a>
+    <a href="#progress">Progression</a>
     <a href="#play">Modes</a>
   </div>
   <a href="#play" class="nav-cta">Play now</a>
@@ -414,7 +415,32 @@
   </div>
 </section>
 
+<section id="progress">
+  <div class="section-eyebrow">Progression</div>
+  <h2 class="section-title display">Everything you do sticks around</h2>
+  <p class="section-sub">No account, no server — just your browser remembering what you've earned.</p>
+
+  <div class="glossary">
+    <div class="g-card">
+      <div class="g-icon" style="background:rgba(93,202,165,0.15); color:var(--teal);">↑</div>
+      <h4>Levels & XP</h4>
+      <p>Every run earns experience based on your score. Level up and it's tracked right in the HUD, run after run.</p>
+    </div>
+    <div class="g-card">
+      <div class="g-icon" style="background:rgba(239,159,39,0.15); color:var(--gold);">✓</div>
+      <h4>Achievements</h4>
+      <p>Streaks, clears, unlocks, and a few things you'll only find by playing badly on purpose.</p>
+    </div>
+    <div class="g-card">
+      <div class="g-icon" style="background:rgba(212,83,126,0.15); color:var(--pink);">#</div>
+      <h4>Local leaderboard</h4>
+      <p>Your top 5 scores per mode, saved on this device. Beat your own record before you worry about anyone else's.</p>
+    </div>
+  </div>
+</section>
+
 <section id="play" class="game-section">
+
   <div class="section-eyebrow">The game</div>
   <h2 class="section-title display">Pick a mode. See how far it goes.</h2>
   <p class="section-sub">Everything from the tutorial above applies once you're in. Hit play when you're ready — it opens fullscreen.</p>
@@ -479,7 +505,10 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:4px;">
       <div style="font-size:14px; color:#8B93A3;">Score: <span id="score" style="font-weight:600; color:#F4F6F8;">0</span> <span id="goalText" style="color:#8B93A3;"></span></div>
       <div id="comboWrap" style="font-size:13px; color:#EF9F27; font-weight:600; opacity:0;">Combo x<span id="combo">1</span></div>
-      <div style="font-size:14px; color:#8B93A3;">Best: <span id="best" style="font-weight:600; color:#F4F6F8;">0</span></div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button id="soundToggleBtn" title="Toggle sound" style="background:none; border:1px solid #232938; color:#8B93A3; border-radius:6px; width:26px; height:26px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;">🔊</button>
+        <div style="font-size:14px; color:#8B93A3;">Best: <span id="best" style="font-weight:600; color:#F4F6F8;">0</span></div>
+      </div>
     </div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:11px; color:#8B93A3;">
       <div>Lv <span id="lvl">1</span> — <span id="xpBar" style="display:inline-block; width:70px; height:5px; background:#232938; border-radius:3px; overflow:hidden; vertical-align:middle;"><span id="xpFill" style="display:block; height:100%; width:0%; background:#5DCAA5;"></span></span></div>
@@ -537,7 +566,8 @@
     abyss:   { label: 'Abyss',   speed: 4.3, spawnBase: 18, spawnFloor: 7,  speedGrow: 0.0038, doubleAt: 2,   homing: true,  playerW: 22, chaos: 0.011, goal: 1300, penaltyMode: true, penaltyAmt: 15, hasBoss: true, hasLaser: true },
     training:{ label: 'Training',speed: 3.2, spawnBase: 30, spawnFloor: 14, speedGrow: 0.0015, doubleAt: 999, homing: false, playerW: 30, chaos: 0, goal: 999999, isTraining: true },
     void:    { label: '???',     speed: 5.4, spawnBase: 14, spawnFloor: 5,  speedGrow: 0.0075, doubleAt: -1,  homing: true,  playerW: 18, chaos: 0.014, goal: 3000, secret: true, penaltyMode: true, penaltyAmt: 15, hasBoss: true, hasLaser: true },
-    oblivion:{ label: 'OBLIVION',speed: 15,   spawnBase: 2,  spawnFloor: 1,  speedGrow: 0.03,   doubleAt: -1,  homing: true,  playerW: 9,  chaos: 0.09, goal: 200000, secret: true, penaltyMode: true, penaltyAmt: 100, hasBoss: true, dualBoss: true, hasLaser: true, many: true, requiresWarning: true, oblivionExtra: true, fusionMode: true, sizeMul: 2.6, homingMul: 3, jumpScare: true, fallSpeedMul: 1.6 }
+    precision:{label: 'Precision',speed: 4.2, spawnBase: 22, spawnFloor: 10, speedGrow: 0.0026, doubleAt: 999, homing: false, playerW: 26, chaos: 0.0006, goal: 200, penaltyMode: false, precisionMode: true },
+    oblivion:{ label: 'OBLIVION',speed: 15,   spawnBase: 2,  spawnFloor: 1,  speedGrow: 0.03,   doubleAt: -1,  homing: true,  playerW: 9,  chaos: 0.09, goal: 200000, secret: true, penaltyMode: true, penaltyAmt: 100, hasBoss: true, dualBoss: true, hasLaser: true, many: true, requiresWarning: true, oblivionExtra: true, fusionMode: true, sizeMul: 2.6, homingMul: 3, jumpScare: true, fallSpeedMul: 1.6, noMercy: true }
   };
 
   const bests = {};
@@ -546,6 +576,7 @@
   let oblivionUnlocked = false;
   let playerLevel = 1, playerXP = 0, xpToNext = 100;
   let totalRuns = 0, totalScore = 0, bestCombo = 0, modesWon = new Set();
+  let flawlessClear = false;
   const ACHIEVEMENTS = [
     { id:'first', label:'First steps', desc:'Complete any run', check: () => totalRuns >= 1 },
     { id:'combo5', label:'Streak master', desc:'Reach combo x5', check: () => bestCombo >= 5 },
@@ -553,6 +584,8 @@
     { id:'clear3', label:'Triple threat', desc:'Win 3 different modes', check: () => modesWon.size >= 3 },
     { id:'void', label:'Into the void', desc:'Unlock the secret mode', check: () => voidUnlocked },
     { id:'oblivion', label:'Beyond reason', desc:'Unlock Oblivion', check: () => oblivionUnlocked },
+    { id:'precision', label:'Not a scratch', desc:'Clear Precision without a single hit', check: () => flawlessClear },
+    { id:'leaderboard5', label:'Name in lights', desc:'Land in the top 5 of any mode', check: () => Object.values(loadLeaderboard()).some(list => list.some(e => e.name === playerName)) },
     { id:'score500', label:'Half grand', desc:'Score 500+ in one run', check: () => totalScore >= 500 },
     { id:'lvl5', label:'Leveling up', desc:'Reach player level 5', check: () => playerLevel >= 5 }
   ];
@@ -595,8 +628,26 @@
   let fakeLagUntil = 0;
   let laser, laserTimer, gravityFlip, gravityTimer, coinStreak;
   let survivalSeconds;
+  let dangerLevel = 0;
   let hitCount = 0;
   let playerName = localStorage.getItem('dodge_player_name') || '';
+
+  function loadLeaderboard(){
+    try{ return JSON.parse(localStorage.getItem('dodge_leaderboard') || '{}'); }
+    catch(e){ return {}; }
+  }
+  function saveLeaderboard(lb){
+    try{ localStorage.setItem('dodge_leaderboard', JSON.stringify(lb)); } catch(e){}
+  }
+  function recordLeaderboardEntry(mk, sc){
+    if(!sc || sc <= 0) return;
+    const lb = loadLeaderboard();
+    const list = lb[mk] || [];
+    list.push({ name: playerName || 'Player', score: sc, at: Date.now() });
+    list.sort((a,b) => b.score - a.score);
+    lb[mk] = list.slice(0, 5);
+    saveLeaderboard(lb);
+  }
 
   function xpNeeded(lvl){ return 100 + (lvl-1)*40; }
   function addXP(amt){
@@ -606,6 +657,7 @@
       playerLevel++;
       xpToNext = xpNeeded(playerLevel);
       showBanner('Level up! Lv ' + playerLevel);
+      sfx('levelup');
     }
     lvlEl.textContent = playerLevel;
     xpFillEl.style.width = Math.min(100, (playerXP/xpToNext)*100) + '%';
@@ -654,6 +706,7 @@
     gravityFlip = false; gravityTimer = 320;
     coinStreak = 0;
     survivalSeconds = 0;
+    dangerLevel = 0;
     hitCount = 0;
     goalTextEl.textContent = mode.isTraining ? '(training)' : (mode.isEndless ? '(survive)' : ('/ ' + mode.goal));
     scoreEl.textContent = '0';
@@ -678,8 +731,10 @@
     const size = isGold ? 26 : (18 + Math.random()*20) * mul;
     const fromTop = !(isGravityActive() && gravityFlip);
     const speedMul = mode.fallSpeedMul || 1;
+    // noMercy: spawn already partway down the field instead of fully off-screen — far less time to react.
+    const startOffset = mode.noMercy ? H * (0.25 + Math.random()*0.25) : size;
     const b = {
-      x: Math.random() * (W - size), y: fromTop ? -size : H+size, w: size, h: size,
+      x: Math.random() * (W - size), y: fromTop ? -startOffset : H+startOffset, w: size, h: size,
       vy: (fromTop ? 1 : -1) * (speed + Math.random()*2.5) * speedMul, vx: 0,
       color: isGold ? '#EF9F27' : colorFor(Math.floor(Math.random()*4)),
       spin: (Math.random()-0.5)*0.06,
@@ -694,6 +749,43 @@
   function spawnClock(){ const size=18; clocks.push({ x: Math.random()*(W-size), y:-size, w:size, h:size, vy: speed*0.85 }); }
   function spawnDrone(){ const size=20; drones.push({ x: Math.random()*(W-size), y:-size, w:size, h:size, vy: speed*0.85 }); }
   function spawnCoin(){ const size=14; coins.push({ x: Math.random()*(W-size), y:-size, w:size, h:size, vy: speed*0.9 }); }
+
+  // ---- lightweight synthesized sound (no external audio files) ----
+  let audioCtx = null;
+  let soundOn = localStorage.getItem('dodge_sound') !== 'off';
+  function getAudioCtx(){
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return null; }
+    }
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+  function playTone(freq, dur, type, gainVal, delay){
+    if(!soundOn) return;
+    const ac = getAudioCtx();
+    if(!ac) return;
+    const t0 = ac.currentTime + (delay || 0);
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(gainVal || 0.08, t0 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.start(t0); osc.stop(t0 + dur + 0.02);
+  }
+  function sfx(kind){
+    if(!soundOn) return;
+    if(kind === 'score') playTone(680, 0.05, 'sine', 0.035);
+    else if(kind === 'hit') playTone(140, 0.18, 'sawtooth', 0.09);
+    else if(kind === 'shield') playTone(520, 0.12, 'triangle', 0.07);
+    else if(kind === 'powerup') { playTone(500, 0.09, 'triangle', 0.06); playTone(760, 0.12, 'triangle', 0.05, 0.06); }
+    else if(kind === 'milestone') { playTone(440, 0.1, 'square', 0.05); playTone(660, 0.1, 'square', 0.05, 0.08); playTone(880, 0.16, 'square', 0.05, 0.16); }
+    else if(kind === 'win') { [523,659,784,1047].forEach((f,i) => playTone(f, 0.22, 'triangle', 0.055, i*0.09)); }
+    else if(kind === 'lose') { playTone(300, 0.3, 'sawtooth', 0.07); playTone(180, 0.4, 'sawtooth', 0.06, 0.1); }
+    else if(kind === 'levelup') { [392,523,659].forEach((f,i) => playTone(f, 0.14, 'sine', 0.05, i*0.07)); }
+  }
 
   function burst(x, y, color, n){
     for(let i=0;i<n;i++){
@@ -775,7 +867,7 @@
   }
 
   function registerHit(bx, by, bcolor){
-    if(shielded){ shielded = false; showBanner('Shield absorbed a hit'); burst(bx, by, '#F2C744', 14); return; }
+    if(shielded){ shielded = false; showBanner('Shield absorbed a hit'); sfx('shield'); burst(bx, by, '#F2C744', 14); return; }
     if(mode.penaltyMode){
       if(frame < invulnUntil) return;
       let amt = mode.penaltyAmt || 15;
@@ -792,9 +884,10 @@
       scoreEl.textContent = score;
       combo = 1; comboWrap.style.opacity = '0';
       coinStreak = 0;
-      invulnUntil = frame + 55;
+      invulnUntil = frame + (mode.noMercy ? 0 : 55);
       hitCount++;
       showBanner('Hit! -' + amt);
+      sfx('hit');
       burst(bx, by, bcolor, 10);
       shake(6);
       return;
@@ -808,6 +901,7 @@
       score += 25;
       scoreEl.textContent = score;
       showBanner('Milestone bonus +25');
+      sfx('milestone');
       burst(player.x+player.w/2, H-40, '#EF9F27', 18);
       milestoneNext += 200;
     }
@@ -1003,6 +1097,7 @@
 
     const pcx = player.x + player.w/2;
     const effSpeedMul = speedBurstMul * timeMul;
+    dangerLevel *= 0.88;
 
     for(let i=stars.length-1;i>=0;i--){
       const s = stars[i]; s.y += s.vy*timeMul;
@@ -1016,7 +1111,7 @@
       }
       ctx.closePath(); ctx.fill(); ctx.restore();
       if(s.x<player.x+player.w && s.x+s.w>player.x && s.y<playerY+player.h && s.y+s.h>playerY){
-        stars.splice(i,1); shielded=true; showBanner('Shield active'); burst(s.x+s.w/2,s.y+s.h/2,'#F2C744',12); continue;
+        stars.splice(i,1); shielded=true; showBanner('Shield active'); sfx('shield'); burst(s.x+s.w/2,s.y+s.h/2,'#F2C744',12); continue;
       }
       if(s.y>H+30 || s.y<-30-H) stars.splice(i,1);
     }
@@ -1025,7 +1120,7 @@
       ctx.fillStyle = '#5DCAA5';
       ctx.beginPath(); ctx.arc(o.x+o.w/2, o.y+o.h/2, o.w/2, 0, Math.PI*2); ctx.fill();
       if(o.x<player.x+player.w && o.x+o.w>player.x && o.y<playerY+player.h && o.y+o.h>playerY){
-        orbs.splice(i,1); slowmoUntil = frame+150; slowmoMul=0.5; showBanner('Slow-mo'); burst(o.x+o.w/2,o.y+o.h/2,'#5DCAA5',12); continue;
+        orbs.splice(i,1); slowmoUntil = frame+150; slowmoMul=0.5; showBanner('Slow-mo'); sfx('powerup'); burst(o.x+o.w/2,o.y+o.h/2,'#5DCAA5',12); continue;
       }
       if(o.y>H+30) orbs.splice(i,1);
     }
@@ -1036,7 +1131,7 @@
       ctx.beginPath(); ctx.moveTo(c.x+c.w/2, c.y+c.h/2); ctx.lineTo(c.x+c.w/2, c.y+c.h/2-5); ctx.moveTo(c.x+c.w/2, c.y+c.h/2); ctx.lineTo(c.x+c.w/2+4, c.y+c.h/2); ctx.stroke();
       if(c.x<player.x+player.w && c.x+c.w>player.x && c.y<playerY+player.h && c.y+c.h>playerY){
         clocks.splice(i,1); score += 30; scoreEl.textContent = score;
-        showBanner('Rewind +30'); burst(c.x+c.w/2,c.y+c.h/2,'#7F77DD',12); continue;
+        showBanner('Rewind +30'); sfx('powerup'); burst(c.x+c.w/2,c.y+c.h/2,'#7F77DD',12); continue;
       }
       if(c.y>H+30) clocks.splice(i,1);
     }
@@ -1047,7 +1142,7 @@
       ctx.fillStyle = '#04342C';
       ctx.beginPath(); ctx.arc(d.x+d.w/2, d.y+d.h/2, 4, 0, Math.PI*2); ctx.fill();
       if(d.x<player.x+player.w && d.x+d.w>player.x && d.y<playerY+player.h && d.y+d.h>playerY){
-        drones.splice(i,1); droneLevel = Math.min(3, droneLevel+1); showBanner('Drone level ' + droneLevel);
+        drones.splice(i,1); droneLevel = Math.min(3, droneLevel+1); showBanner('Drone level ' + droneLevel); sfx('powerup');
         burst(d.x+d.w/2,d.y+d.h/2,'#5DCAA5',14); continue;
       }
       if(d.y>H+30) drones.splice(i,1);
@@ -1182,6 +1277,15 @@
         b.vx += (bcx<pcx?pull:-pull); b.vx = Math.max(-cap, Math.min(cap, b.vx));
         b.x -= b.vx*timeMul; b.x = Math.max(0, Math.min(W-b.w, b.x));
       }
+      // Track how close the nearest incoming block is, for the danger vignette.
+      if(!invuln){
+        const dy = b.y - playerY;
+        if(dy > -60 && dy < 90){
+          const dx = Math.abs((b.x+b.w/2) - pcx);
+          const closeness = Math.max(0, 1 - dx / (player.w*3 + 40));
+          if(closeness > dangerLevel) dangerLevel = closeness;
+        }
+      }
       const darkActive = mode.darkVision || (mode.fusionMode && fusedDark);
       const nearPlayer = darkActive ? (Math.abs((b.y)-playerY)<220) : true;
       if(!darkActive || nearPlayer){
@@ -1191,13 +1295,14 @@
         if(b.gold){ ctx.strokeStyle = '#633806'; ctx.lineWidth = 1.5; ctx.stroke(); }
         ctx.restore();
       }
-      const hit = !invuln && b.x<player.x+player.w && b.x+b.w>player.x && b.y<playerY+player.h && b.y+b.h>playerY;
+      const hitPad = mode.noMercy ? 4 : 0;
+      const hit = !invuln && b.x-hitPad<player.x+player.w && b.x+b.w+hitPad>player.x && b.y-hitPad<playerY+player.h && b.y+b.h+hitPad>playerY;
       if(hit){
         const bx=b.x+b.w/2, by=b.y+b.h/2, bcol=b.color, wasGold=b.gold;
         blocks.splice(i,1);
         if(wasGold){
           score += 40; scoreEl.textContent = score;
-          showBanner('Gold block +40'); burst(bx,by,'#EF9F27',20); checkMilestone(); continue;
+          showBanner('Gold block +40'); sfx('milestone'); burst(bx,by,'#EF9F27',20); checkMilestone(); continue;
         }
         registerHit(bx, by, bcol);
         if(!running){ ctx.restore(); return; }
@@ -1216,6 +1321,7 @@
         bestCombo = Math.max(bestCombo, combo);
         if(combo>1){ comboWrap.style.opacity='1'; comboEl.textContent=combo; }
         scoreEl.textContent = score;
+        if(!mode.many && Math.random() < 0.35) sfx('score');
         checkMilestone();
         if(!mode.isTraining && !mode.isEndless && score >= mode.goal){ ctx.restore(); winGame(); return; }
       }
@@ -1245,6 +1351,14 @@
       ctx.fillText('reconnecting' + '.'.repeat(1 + Math.floor(frame/6)%3), 10, H-8);
     }
 
+    if(dangerLevel > 0.04){
+      const g = ctx.createRadialGradient(W/2, H*0.62, H*0.28, W/2, H*0.62, H*0.78);
+      g.addColorStop(0, 'rgba(226,75,74,0)');
+      g.addColorStop(1, 'rgba(226,75,74,' + (dangerLevel * 0.4).toFixed(3) + ')');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+
     ctx.restore();
     raf = requestAnimationFrame(loop);
   }
@@ -1259,18 +1373,22 @@
 
   function gameOver(){
     running = false;
+    sfx('lose');
     if(!mode.isTraining && score > bests[modeKey]){ bests[modeKey] = score; bestEl.textContent = score; }
     if(modeKey === 'abyss' && score >= mode.goal && !voidUnlocked){ voidUnlocked = true; }
     if(modeKey === 'void' && score >= mode.goal && !oblivionUnlocked){ oblivionUnlocked = true; }
-    if(!mode.isTraining) finalizeRun(false);
+    if(!mode.isTraining){ finalizeRun(false); recordLeaderboardEntry(modeKey, score); }
     showOverlay(true, false);
   }
   function winGame(){
     running = false;
+    sfx('win');
     if(score > bests[modeKey]){ bests[modeKey] = score; bestEl.textContent = score; }
     if(modeKey === 'abyss') voidUnlocked = true;
     if(modeKey === 'void') oblivionUnlocked = true;
+    if(modeKey === 'precision' && hitCount === 0) flawlessClear = true;
     finalizeRun(true);
+    recordLeaderboardEntry(modeKey, score);
     showOverlay(true, true);
   }
 
@@ -1287,6 +1405,7 @@
       if(key==='inferno'||key==='chaos'){ btn.style.borderColor='#E24B4A'; btn.style.color='#fff'; btn.style.background='#E24B4A'; }
       if(key==='abyss'){ btn.style.borderColor='#E24B4A'; btn.style.color='#fff'; btn.style.background='#4A1B0C'; }
       if(key==='void'){ btn.style.gridColumn='span 2'; btn.style.borderColor='#9C4DCC'; btn.style.color='#fff'; btn.style.background='#2B0B40'; }
+      if(key==='precision'){ btn.style.borderColor='#F4F6F8'; btn.style.color='#0B0E14'; btn.style.background='#F4F6F8'; }
       if(key==='oblivion'){ btn.style.gridColumn='span 2'; btn.style.borderColor='#000'; btn.style.color='#E24B4A'; btn.style.background='#000'; btn.style.textShadow='0 0 8px rgba(226,75,74,0.6)'; }
       if(key==='disco'){ btn.style.borderColor='#D4537E'; btn.style.color='#fff'; btn.style.background='linear-gradient(90deg,#7F77DD,#D4537E)'; }
       if(key==='gravity'){ btn.style.borderColor='#7F77DD'; btn.style.color='#fff'; btn.style.background='#534AB7'; }
@@ -1312,6 +1431,38 @@
     return list;
   }
 
+  function buildLeaderboardList(){
+    const wrap2 = document.createElement('div');
+    wrap2.style.cssText = 'display:flex; flex-direction:column; gap:10px; width:100%; max-width:300px; max-height:320px; overflow-y:auto;';
+    const lb = loadLeaderboard();
+    const modeKeys = Object.keys(MODES).filter(k => !MODES[k].isTraining && (lb[k] && lb[k].length));
+    if(modeKeys.length === 0){
+      const empty = document.createElement('div');
+      empty.style.cssText = 'font-size:12px; color:#8B93A3; text-align:center; padding:20px 10px;';
+      empty.textContent = 'No runs recorded yet on this device. Finish a run to show up here.';
+      wrap2.appendChild(empty);
+      return wrap2;
+    }
+    modeKeys.forEach(k => {
+      const m = MODES[k];
+      if(m.secret && k === 'void' && !voidUnlocked) return;
+      if(m.secret && k === 'oblivion' && !oblivionUnlocked) return;
+      const section = document.createElement('div');
+      const title = document.createElement('div');
+      title.style.cssText = 'font-size:12px; font-weight:700; color:#F4F6F8; margin-bottom:4px;';
+      title.textContent = m.label;
+      section.appendChild(title);
+      lb[k].forEach((entry, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; justify-content:space-between; font-size:11.5px; color:#8B93A3; padding:3px 8px; border-radius:5px;' + (i===0 ? ' background:rgba(239,159,39,0.1); color:#EF9F27;' : '');
+        row.innerHTML = '<span>' + (i+1) + '. ' + (entry.name || 'Player') + '</span><span>' + entry.score + '</span>';
+        section.appendChild(row);
+      });
+      wrap2.appendChild(section);
+    });
+    return wrap2;
+  }
+
   function showOblivionWarning(){
     overlay.innerHTML = '';
     const title = document.createElement('div');
@@ -1323,8 +1474,9 @@
     warn.style.cssText = 'font-size:13px; color:#F4F6F8; text-align:center; max-width:280px; line-height:1.6;';
     warn.innerHTML = 'This is, on purpose, unplayable.<br><br>' +
       'Target: <strong>200,000</strong>. Hits cost <strong>100 points</strong> until you pass <strong>1,000</strong>, then a random amount between <strong>100 and 500</strong> — and past <strong>5,000</strong>, a random amount between <strong>1,000 and 100,000</strong>. The deeper into a run you get, the more a single hit can undo.<br><br>' +
-      'Blocks are huge, fall fast, and pull toward you hard. Every other mode\'s gimmick fuses in and stacks — gravity flips, mirrored controls, drift, blackout, narrowed field, disco — often several at once.<br><br>' +
-      'Blocks can also appear right next to you with almost no warning. That\'s intentional too.<br><br>' +
+      'Blocks are huge, fall fast, pull toward you hard, and spawn already partway down the screen — there is barely any time to react. Collision is intentionally forgiving to the blocks, not to you.<br><br>' +
+      'There is no invincibility window after a hit here, so a bad moment can chain into several hits in a row.<br><br>' +
+      'Every other mode\'s gimmick fuses in and stacks — gravity flips, mirrored controls, drift, blackout, narrowed field, disco — often several at once. Blocks can also appear right next to you with no warning at all.<br><br>' +
       'There is no shortcut, and this is not designed to be beaten.';
     overlay.appendChild(warn);
 
@@ -1374,7 +1526,7 @@
   function renderTabContent(){
     const old = document.getElementById('modeSelect');
     if(old) old.remove();
-    const container = currentTab === 'modes' ? buildModeGrid() : buildAchievementsList();
+    const container = currentTab === 'modes' ? buildModeGrid() : (currentTab === 'achievements' ? buildAchievementsList() : buildLeaderboardList());
     container.id = 'modeSelect';
     overlay.appendChild(container);
   }
@@ -1456,12 +1608,14 @@
       }
     }
     const tabRow = document.createElement('div');
-    tabRow.style.cssText = 'display:flex; gap:6px;';
+    tabRow.style.cssText = 'display:flex; gap:6px; flex-wrap:wrap; justify-content:center;';
     const tm = document.createElement('button'); tm.textContent='Modes'; tm.style.cssText= btnBase + 'padding:6px 12px; font-size:12px;';
     const ta = document.createElement('button'); ta.textContent='Achievements'; ta.style.cssText = btnBase + 'padding:6px 12px; font-size:12px;';
+    const tl = document.createElement('button'); tl.textContent='Leaderboard'; tl.style.cssText = btnBase + 'padding:6px 12px; font-size:12px;';
     tm.onclick = () => { currentTab='modes'; renderTabContent(); };
     ta.onclick = () => { currentTab='achievements'; renderTabContent(); };
-    tabRow.appendChild(tm); tabRow.appendChild(ta);
+    tl.onclick = () => { currentTab='leaderboard'; renderTabContent(); };
+    tabRow.appendChild(tm); tabRow.appendChild(ta); tabRow.appendChild(tl);
     overlay.appendChild(tabRow);
     currentTab = 'modes';
     renderTabContent();
@@ -1483,6 +1637,15 @@
   window.addEventListener('keyup', (e) => {
     if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
     keys[e.key] = false;
+  });
+
+  const soundBtn = document.getElementById('soundToggleBtn');
+  soundBtn.textContent = soundOn ? '🔊' : '🔇';
+  soundBtn.addEventListener('click', () => {
+    soundOn = !soundOn;
+    localStorage.setItem('dodge_sound', soundOn ? 'on' : 'off');
+    soundBtn.textContent = soundOn ? '🔊' : '🔇';
+    if(soundOn) getAudioCtx();
   });
 
   let dragging = false;
