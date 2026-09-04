@@ -778,7 +778,11 @@
     if(shielded){ shielded = false; showBanner('Shield absorbed a hit'); burst(bx, by, '#F2C744', 14); return; }
     if(mode.penaltyMode){
       if(frame < invulnUntil) return;
-      const amt = mode.penaltyAmt || 15;
+      let amt = mode.penaltyAmt || 15;
+      if(mode.oblivionExtra && score >= 100000){
+        // Past 100k the penalty stops being predictable — anywhere from a graze to a gut punch.
+        amt = 1000 + Math.floor(Math.random() * 99000);
+      }
       score = Math.max(0, score - amt);
       scoreEl.textContent = score;
       combo = 1; comboWrap.style.opacity = '0';
