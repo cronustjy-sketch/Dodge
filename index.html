@@ -731,16 +731,25 @@
     const size = isGold ? 26 : (18 + Math.random()*20) * mul;
     const fromTop = !(isGravityActive() && gravityFlip);
     const speedMul = mode.fallSpeedMul || 1;
-    // noMercy: spawn already partway down the field instead of fully off-screen — far less time to react.
-    const startOffset = mode.noMercy ? H * (0.25 + Math.random()*0.25) : size;
+    // noMercy: spawn partway down the field instead of fully off-screen — much less time to react, but not zero.
+    const startOffset = mode.noMercy ? H * (0.42 + Math.random()*0.18) : size;
+    // Oblivion biases spawn X toward wherever the player actually is — no safe corner to camp in.
+    let spawnX;
+    if(mode.oblivionExtra && player){
+      const pcxBias = player.x + player.w/2;
+      const spread = W * 1.15;
+      spawnX = Math.max(0, Math.min(W - size, pcxBias - size/2 + (Math.random()-0.5) * spread));
+    } else {
+      spawnX = Math.random() * (W - size);
+    }
     const b = {
-      x: Math.random() * (W - size), y: fromTop ? -startOffset : H+startOffset, w: size, h: size,
+      x: spawnX, y: fromTop ? -startOffset : H+startOffset, w: size, h: size,
       vy: (fromTop ? 1 : -1) * (speed + Math.random()*2.5) * speedMul, vx: 0,
       color: isGold ? '#EF9F27' : colorFor(Math.floor(Math.random()*4)),
       spin: (Math.random()-0.5)*0.06,
       gold: isGold
     };
-    if(mode.homing && Math.random() < 0.5) b.homing = true;
+    if(mode.homing && Math.random() < (mode.oblivionExtra ? 0.85 : 0.5)) b.homing = true;
     blocks.push(b);
   }
 
@@ -884,7 +893,7 @@
       scoreEl.textContent = score;
       combo = 1; comboWrap.style.opacity = '0';
       coinStreak = 0;
-      invulnUntil = frame + (mode.noMercy ? 0 : 55);
+      invulnUntil = frame + (mode.noMercy ? 20 : 55);
       hitCount++;
       showBanner('Hit! -' + amt);
       sfx('hit');
@@ -1295,8 +1304,7 @@
         if(b.gold){ ctx.strokeStyle = '#633806'; ctx.lineWidth = 1.5; ctx.stroke(); }
         ctx.restore();
       }
-      const hitPad = mode.noMercy ? 4 : 0;
-      const hit = !invuln && b.x-hitPad<player.x+player.w && b.x+b.w+hitPad>player.x && b.y-hitPad<playerY+player.h && b.y+b.h+hitPad>playerY;
+      const hit = !invuln && b.x<player.x+player.w && b.x+b.w>player.x && b.y<playerY+player.h && b.y+b.h>playerY;
       if(hit){
         const bx=b.x+b.w/2, by=b.y+b.h/2, bcol=b.color, wasGold=b.gold;
         blocks.splice(i,1);
@@ -1472,12 +1480,11 @@
 
     const warn = document.createElement('div');
     warn.style.cssText = 'font-size:13px; color:#F4F6F8; text-align:center; max-width:280px; line-height:1.6;';
-    warn.innerHTML = 'This is, on purpose, unplayable.<br><br>' +
+    warn.innerHTML = 'This is, on purpose, brutal.<br><br>' +
       'Target: <strong>200,000</strong>. Hits cost <strong>100 points</strong> until you pass <strong>1,000</strong>, then a random amount between <strong>100 and 500</strong> — and past <strong>5,000</strong>, a random amount between <strong>1,000 and 100,000</strong>. The deeper into a run you get, the more a single hit can undo.<br><br>' +
-      'Blocks are huge, fall fast, pull toward you hard, and spawn already partway down the screen — there is barely any time to react. Collision is intentionally forgiving to the blocks, not to you.<br><br>' +
-      'There is no invincibility window after a hit here, so a bad moment can chain into several hits in a row.<br><br>' +
-      'Every other mode\'s gimmick fuses in and stacks — gravity flips, mirrored controls, drift, blackout, narrowed field, disco — often several at once. Blocks can also appear right next to you with no warning at all.<br><br>' +
-      'There is no shortcut, and this is not designed to be beaten.';
+      'Blocks are huge, fall fast, pull toward you hard, and spawn partway down the screen — reaction time is short. Hitboxes are exact, not forgiving.<br><br>' +
+      'Every other mode\'s gimmick fuses in and stacks — gravity flips, mirrored controls, drift, blackout, narrowed field, disco — often several at once. Blocks can also appear right next to you with almost no warning.<br><br>' +
+      'It is not designed to be easy. It is theoretically possible.';
     overlay.appendChild(warn);
 
     const row = document.createElement('div');
